@@ -71,7 +71,11 @@ fi
 
 clear # clear the screen
 # load constants from values sourced from SETTINGS, supply defaults if not specified
-PIPER_STEP=${PIPER_SAVE_CHECKPOINT_EVERY_N_EPOCHS:5}
+# Grep the value, strip carriage returns, and trim whitespace
+PIPER_STEP=$(grep "PIPER_SAVE_CHECKPOINT_EVERY_N_EPOCHS" "$SETTINGS_FILE" | cut -d '=' -f 2 | tr -d '\r' | xargs)
+# Fallback default
+if [ -z "$PIPER_STEP" ]; then PIPER_STEP=25; fi
+
 MIN_GB=${SETTINGS_GRABBER_MINIMUM_DRIVE_SPACE_GB:-20}
 MIN_GB_WARNING=${DRIVE_SPACE_WARNING_THRESHOLD_GB:-10}
 MINIMUM_DRIVE_SPACE=$((MIN_GB * 1024 * 1024))  # 20 GB in KB
@@ -127,36 +131,7 @@ export_model(){
 }
 
 
-check_inotifywait() {
-# make sure the inotifywait package is installed.
-    if ! command -v inotifywait &> /dev/null; then
-        echo "inotifywait is not installed on your system."
-        if [ -f /etc/debian_version ]; then
-            echo "You can install inotifywait using the following command:"
-            echo "sudo apt-get install inotify-tools"
-        elif [ -f /etc/redhat-release ]; then
-            echo "You can install inotifywait using the following command:"
-            echo "sudo yum install inotify-tools"
-        elif [ -f /etc/fedora-release ]; then
-            echo "You can install inotifywait using the following command:"
-            echo "sudo dnf install inotify-tools"
-        elif [ -f /etc/arch-release ]; then
-            echo "You can install inotifywait using the following command:"
-            echo "sudo pacman -S inotify-tools"
-        elif [ "$(uname)" == "Darwin" ]; then
-            echo "You can install inotifywait using Homebrew. If you don't have Homebrew installed, you can install it from https://brew.sh/"
-            echo "Once Homebrew is installed, you can install inotifywait using the following command:"
-            echo "brew install inotify-tools"
-        else
-            echo "Please install inotifywait manually or using your package manager."
-        fi
-        echo "Press Enter to exit"
-        read
-        exit 1
-    else
-        return 0
-    fi
-}
+# check_inotifywait removed as we switched to polling
 
 calculate_avg_time_per_checkpoint() {
     if [ $checkpoints_seen -gt 1 ]; then
@@ -379,14 +354,20 @@ show_training_dir_created_message(){
     echo
 }
 
-inotify_function(){
-# subprocess that monitors checkpoint directory for creation of new files
-# creates a signal file to pass the new file name to the main program
+file_monitor_function(){
+# subprocess that polls the checkpoint directory for the latest file
+# writes the filename to the signal file for the main program to pick up
     trap "exit" INT TERM
     trap "kill 0" EXIT
-    inotifywait -m -e create --format "%w%f" "$checkpoints_dir"  | while read new_file; do
-        echo "$checkpoints_dir got new file! $new_file"
-        echo "$new_file" > $NEW_CHECKPOINT_SIGNAL_FILE
+    while true; do
+        # Use ls -v to sort by version numbers naturally
+        # Look for *.ckpt files as requested
+        latest_file=$(ls -v "$checkpoints_dir"/*.ckpt 2>/dev/null | tail -n 1)
+
+        if [ -n "$latest_file" ]; then
+            echo "$latest_file" > "$NEW_CHECKPOINT_SIGNAL_FILE"
+        fi
+        sleep 2
     done
 }
 
@@ -413,7 +394,7 @@ main_loop() {
 
 
 # MAIN PROGRAM START *************************************************
-check_inotifywait  # make sure dependency is installed
+# check_inotifywait  # No longer needed
 
 version_number=0
 
@@ -463,8 +444,8 @@ done
 
 show_training_dir_created_message
 
-# Start inotify function which will run continuously in the background
-inotify_function >"/tmp/INOTIFY.txt" &
+# Start file monitor function which will run continuously in the background
+file_monitor_function >"/tmp/FILEMONITOR.txt" &
 
 main_loop
 
