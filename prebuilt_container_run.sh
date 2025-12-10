@@ -64,15 +64,12 @@ if ! docker image inspect $IMAGE_NAME > /dev/null 2>&1; then
 fi
 
 # Run the docker container with CUDA support
-docker run --rm -d \
+docker run --gpus all --rm -d \
   --name $CONTAINER_NAME \
   --hostname $CONTAINER_NAME \
   --volume $TMS_VOLUME_PATH:/app/tts_dojo \
-  --runtime nvidia \
   --env PUID=$TMS_USER_ID \
   --env PGID=$TMS_GROUP_ID \
-  --env NVIDIA_VISIBLE_DEVICES=all \
-  --env NVIDIA_DRIVER_CAPABILITIES=compute,utility \
   --user "$TMS_USER_ID:$TMS_GROUP_ID" \
   --tty \
   -p 6006:6006 \
