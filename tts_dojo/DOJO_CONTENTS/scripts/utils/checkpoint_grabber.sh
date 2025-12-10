@@ -359,13 +359,15 @@ file_monitor_function(){
 # writes the filename to the signal file for the main program to pick up
     trap "exit" INT TERM
     trap "kill 0" EXIT
+    last_seen_file=""
     while true; do
         # Use ls -v to sort by version numbers naturally
         # Look for *.ckpt files as requested
         latest_file=$(ls -v "$checkpoints_dir"/*.ckpt 2>/dev/null | tail -n 1)
 
-        if [ -n "$latest_file" ]; then
+        if [ -n "$latest_file" ] && [ "$latest_file" != "$last_seen_file" ]; then
             echo "$latest_file" > "$NEW_CHECKPOINT_SIGNAL_FILE"
+            last_seen_file="$latest_file"
         fi
         sleep 2
     done
