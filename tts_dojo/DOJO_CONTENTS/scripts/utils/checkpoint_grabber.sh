@@ -107,7 +107,7 @@ export_model(){
     chown -R 1000:1000 "$voice_folder_path"
    
     # send an "enter" keystroke to the exporter pane to end the "read" command that is preventing a command prompt from displaying
-    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.3}" Enter  
+    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.2}" Enter
 
     # convert absolute path of checkpoint file on host to relative path needed by docker container.
     # needed format is ../voice_checkpoints/epoch=2579-step=577032.ckpt
@@ -117,7 +117,7 @@ export_model(){
     piper_compliant_filename_onnx="${PIPER_FILENAME_PREFIX}-${VOICE_NAME}_${epoch}-${quality}.onnx"
     
     # send command to exporter pane which will create the .onnx file for the piper tts voice in a subfolder of <voice>_dojo/tts_voices
-    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.3}" "bash utils/_tmux_piper_export.sh $export_checkpoint ../tts_voices/$voice_folder/$piper_compliant_filename_onnx ${DOJO_NAME}"  Enter
+    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.2}" "bash utils/_tmux_piper_export.sh $export_checkpoint ../tts_voices/$voice_folder/$piper_compliant_filename_onnx ${DOJO_NAME}"  Enter
     
     # Load the amount of time the export took from temporary file
     last_export_duration_seconds=$(cat $EXPORTER_LAST_EXPORT_SECONDS_FILE)
@@ -127,7 +127,7 @@ export_model(){
     update_grabber_status
     
     # Put exporter pane back into its neutral state.
-    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.3}" "clear && echo 'Waiting for next model to export.' && read " Enter 
+    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.2}" "clear && echo 'Waiting for next model to export (controlled by checkpoint grabber).' && read " Enter
 }
 
 
