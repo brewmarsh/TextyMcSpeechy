@@ -594,7 +594,7 @@ start_tmux_layout(){
     tmux send-keys -t training "tmux set -g pane-border-status top" Enter   # Turn on pane labels
 
     tmux split-window -v -t training # split screen into two rows
-    tmux send-keys -t training "tmux resize-pane -t 0.0 -U 34" Enter  # shrink the top pane 
+    tmux send-keys -t training "tmux resize-pane -t 0.0 -y 3" Enter  # shrink the top pane
     tmux send-keys -t training "tmux resize-pane -t 0.0 -R 42" Enter  
 
     tmux split-window -h -t 0.0     # split top row into 2 columns
@@ -648,7 +648,7 @@ start_tmux_processes(){
     tmux send-keys -t "${TMUX_TENSORBOARD_PANE:-0.1}" "bash utils/run_tensorboard_server.sh $DOJO_NAME" Enter
 
     # clear the the voice exporter pane and display ready message. 
-    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.2}" "clear && echo 'Ready to export voice models' && read " Enter
+    tmux send-keys -t "${TMUX_EXPORTER_PANE:-0.2}" "clear && echo 'Ready to export voice models (controlled by checkpoint grabber)' && read " Enter
 
     # launch the checkpoint grabber (checkpoint_grabber.sh)
     tmux send-keys -t "${TMUX_GRABBER_PANE:-0.3}" "bash utils/checkpoint_grabber.sh --save_every ${AUTO_SAVE_EVERY_NTH_CHECKPOINT_FILE} ../voice_checkpoints" Enter
