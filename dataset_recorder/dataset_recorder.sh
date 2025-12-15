@@ -23,6 +23,7 @@ declare -a filenames=()
 declare -a phrases=()
 declare -a recorded=()
 no_recording_index="0"
+roomtone_recorded=false
 
 cleanup(){
   echo "cleaning up processes"
@@ -277,6 +278,61 @@ record_wav() {
 
 }
 
+record_roomtone() {
+    clear
+    echo -e "\n\n\n\n\n\n\n"
+    center_text "Room Tone Recording"
+    echo
+    center_text "We can record 20 seconds of silence to use for noise reduction."
+    center_text "This will be used to remove background noise from your recordings."
+    echo
+    center_text "Please ensure the room is silent."
+    echo
+
+    justify_text 30 "Press [r] to record room tone"
+    justify_text 30 "Press [s] to skip"
+
+    while true; do
+        read -r -n 1 keypress
+        case "$keypress" in
+            r|R)
+                break
+                ;;
+            s|S)
+                return
+                ;;
+        esac
+    done
+
+    echo -e "\n"
+    center_text "Recording 20 seconds of silence... Shhh!"
+
+    local error_log="/tmp/arecord_roomtone_error.log"
+    # Record for 20 seconds
+    arecord -f cd -t wav -d 20 -r 44100 "roomtone.wav" > /dev/null 2>"$error_log" &
+    arecord_pid=$!
+
+    # Monitor for 20 seconds
+    for i in {20..1}; do
+        # Use printf to overwrite the line
+        printf "\r%*s\r" $(tput cols) "" # Clear line
+        center_text "Recording... $i seconds remaining"
+        sleep 1
+        if ! kill -0 "$arecord_pid" 2>/dev/null; then
+             echo -e "\n${BOLD_RED}Error: recording failed.${RESET}"
+             cat "$error_log"
+             echo "Press Enter to continue..."
+             read
+             return
+        fi
+    done
+    wait "$arecord_pid"
+    echo -e "\n"
+    center_text "Room tone recording complete. Saved to roomtone.wav"
+    roomtone_recorded=true
+    sleep 2
+}
+
 listen_to_wav() {
     local filename=$(get_filename)
     aplay "$output_dir/$filename" >/dev/null 2>&1
@@ -406,6 +462,9 @@ echo
 echo
 center_text "press <ENTER>"
 read
+
+record_roomtone
+
 update_needed=true
 if [ $no_recording_index -gt 0 ]; then
     clear
@@ -469,6 +528,39 @@ if [ "$update_needed" = "true" ]; then
             fi
             ;;
         q|Q)
+            if [ "$index" -ge "$arraylength" ] && [ "$roomtone_recorded" = "true" ]; then
+                clear
+                echo -e "\n\n\n"
+                center_text "Dataset recording complete!"
+                echo
+                center_text "You recorded a room tone. Would you like to remove background noise"
+                center_text "from your recordings and save them to a new directory?"
+                echo
+                justify_text 30 "[y]es - clean audio"
+                justify_text 30 "[n]o - just quit"
+
+                while true; do
+                     read -r -n 1 keypress
+                     case "$keypress" in
+                        y|Y)
+                            restore_terminal_output
+                            cleaned_dir="${output_dir}_cleaned"
+                            echo -e "\n"
+                            echo "Running noise removal..."
+                            "$(dirname "$0")/remove_roomtone.sh" "$output_dir" "$cleaned_dir" --roomtonepath "roomtone.wav"
+                            echo
+                            echo "Cleaned files saved to: $cleaned_dir"
+                            echo "Press Enter to exit."
+                            read
+                            break
+                            ;;
+                        n|N)
+                            break
+                            ;;
+                     esac
+                done
+            fi
+
             restore_terminal_output  # Ensure terminal settings are restored on exit
             exit 0
             ;;
