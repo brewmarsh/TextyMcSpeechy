@@ -52,6 +52,21 @@ justify_text() {
     printf "%*s\n" $(( ( ${#text} + COLUMNS ) / 2 )) "$text"
 }
 
+check_dependencies() {
+    local missing_deps=0
+    for cmd in arecord aplay ffmpeg; do
+        if ! command -v $cmd &> /dev/null; then
+            echo "Error: Required command '$cmd' is not installed."
+            missing_deps=1
+        fi
+    done
+
+    if [ $missing_deps -eq 1 ]; then
+        echo "Please install the missing dependencies to use this script."
+        exit 1
+    fi
+}
+
 check_files() {
         
     for ((i = 0; i < ${#filenames[@]}; i++)); do
@@ -90,9 +105,6 @@ restore_terminal_output() {
     stty echo
     tput cnorm  # Restore cursor
 }
-
-
-#!/bin/bash
 
 # Function to trim 100 milliseconds from both ends of a .wav file and overwrite the original
 trim_wav() {
@@ -330,8 +342,12 @@ update_display() {
 
 # Main script logic
 trap cleanup SIGINT SIGTERM
+check_dependencies
 csv_file="${1:-metadata.csv}"
 output_dir="${2:-$OUTPUT_DIR}"
+
+# Ensure output directory exists
+mkdir -p "$output_dir"
 
 load_metadata $csv_file
 check_files
