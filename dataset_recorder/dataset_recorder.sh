@@ -63,6 +63,7 @@ check_dependencies() {
 
     if [ $missing_deps -eq 1 ]; then
         echo "Please install the missing dependencies to use this script."
+        echo "Try running 'sudo apt-get install alsa-utils' or execute the project's 'setup.sh' script."
         exit 1
     fi
 }
