@@ -10,7 +10,7 @@ WORKDIR /app
 # Install system dependencies, Python, Pip, and known working version of Piper without revision history to minimize container size.
 RUN apt-get update && apt-get install -y \
     python3.10 python3.10-venv python3.10-dev \
-    git espeak-ng tmux ffmpeg inotify-tools \
+    git espeak-ng tmux ffmpeg inotify-tools alsa-utils sox \
     build-essential && \
     git init piper && cd piper && git fetch --depth 1 https://github.com/rhasspy/piper.git a0f09cdf9155010a45c243bc8a4286b94f286ef4 && git checkout FETCH_HEAD &&\
     rm -rf /var/lib/apt/lists/* 
