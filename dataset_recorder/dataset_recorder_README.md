@@ -19,6 +19,9 @@
 
 - This is an ideal tool for recording a text-to-speech dataset to train a Piper model to speak in one's own voice.
 
+### Windows / WSL2 Users
+If you encounter the error `arecord: device_list:277: no soundcards found`, you will need to configure your audio setup in WSL2. Please follow the guide [here](../docs/wsl2_audio_setup.md).
+
 ## Removing background noise from your dataset recordings
 `remove_roomtone.sh` is a script that can batch remove background noise from your dataset using `sox`. 
 - You must supply a file eg `roomtone.wav` containing just the background noise in the environment where you recorded your dataset.
