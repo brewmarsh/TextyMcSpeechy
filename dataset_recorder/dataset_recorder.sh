@@ -66,6 +66,18 @@ check_dependencies() {
         echo "Try running 'sudo apt-get install alsa-utils' or execute the project's 'setup.sh' script."
         exit 1
     fi
+
+    # Check for audio devices (simple check using arecord -l)
+    # Note: arecord -l might return 0 even if no devices found, so we grep for "card"
+    if command -v arecord &> /dev/null; then
+        if [ $(arecord -l | grep -c "card") -eq 0 ]; then
+             echo -e "${YELLOW}Warning: No capture devices found in 'arecord -l'.${RESET}"
+             echo "If on WSL2, ensure you have configured audio devices or are using WSLg."
+             echo "Recording will likely fail."
+             echo -n "Press [Enter] to continue anyway..."
+             read
+        fi
+    fi
 }
 
 check_files() {
@@ -218,10 +230,30 @@ record_wav() {
     local filename=$(get_filename)
     update_display "Recording - press [r] to stop."
    
+    local error_log="/tmp/arecord_error.log"
 
     # Start recording in the background with arecord
-    arecord -f cd -t wav -d 30 -r 44100 "$output_dir"/"$filename" > /dev/null 2>&1 &
+    arecord -f cd -t wav -d 30 -r 44100 "$output_dir"/"$filename" > /dev/null 2>"$error_log" &
     arecord_pid=$!
+
+    # Short wait to detect immediate failure
+    sleep 0.2
+    if ! kill -0 "$arecord_pid" 2>/dev/null; then
+         stop_arecord
+         restore_terminal_output
+         echo -e "${BOLD_RED}Error: recording failed to start.${RESET}"
+         if [ -s "$error_log" ]; then
+             echo "arecord output:"
+             cat "$error_log"
+         else
+             echo "arecord exited with no output."
+         fi
+         echo
+         echo "If running on WSL2, this is likely due to missing audio device configuration."
+         echo "Press Enter to exit..."
+         read
+         exit 1
+    fi
 
     # Wait for 'r' or 'R' keypress to stop recording
     while true; do
