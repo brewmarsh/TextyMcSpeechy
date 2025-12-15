@@ -102,7 +102,7 @@ apt-get update
 echo
 echo "Installing required packages"
 echo
-apt-get install tmux ffmpeg inotify-tools sox
+apt-get install tmux ffmpeg inotify-tools sox alsa-utils
 echo
 echo "Press <Enter> to continue"
 read 
