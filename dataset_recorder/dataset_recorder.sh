@@ -72,8 +72,13 @@ check_dependencies() {
     if command -v arecord &> /dev/null; then
         if [ $(arecord -l | grep -c "card") -eq 0 ]; then
              echo -e "${YELLOW}Warning: No capture devices found in 'arecord -l'.${RESET}"
-             echo "If on WSL2, ensure you have configured audio devices or are using WSLg."
-             echo "Recording will likely fail."
+             echo "If on WSL2, you may need to enable WSLg for audio support."
+             echo "To do this:"
+             echo "1. Open PowerShell as Administrator."
+             echo "2. Run: wsl --update"
+             echo "3. Run: wsl --shutdown"
+             echo "4. Restart this terminal."
+             echo "Recording will likely fail until audio devices are detected."
              echo -n "Press [Enter] to continue anyway..."
              read
         fi
